@@ -1,5 +1,4 @@
-# A length-carrying string holds a zero byte like any other byte. A
-# terminator-based string cannot represent this at all.
+# A length-carrying string stores a zero byte as data.
 str new s "a\x00b"
 str len s
 str new other "a"

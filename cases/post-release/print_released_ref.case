@@ -1,5 +1,4 @@
-# Printing asks the reference for its value and is told no, which is a
-# question answered rather than a fault.
+# The printer shows the released state without reporting a command error.
 ref new p 42
 print @p
 ref release p

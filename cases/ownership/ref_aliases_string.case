@@ -1,5 +1,4 @@
-# The reference owns its cell, not the string the cell points at. Releasing it
-# must leave the string alone.
+# The reference owns its cell. The environment owns the referenced string.
 str new s "shared"
 ref new p @s
 ref borrow p

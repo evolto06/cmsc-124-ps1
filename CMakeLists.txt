@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
-# LANGUAGES C, not the default C and CXX. A C++ compiler is never invoked for
-# this project, and include/dt.h refuses to be compiled as C++ on top of that.
+# Configure only the C language. The project does not invoke a C++ compiler.
+# The include/dt.h header also rejects C++ compilation.
 project(cmsc_124_ps1_data_types LANGUAGES C)
 
 set(CMAKE_C_STANDARD 17)

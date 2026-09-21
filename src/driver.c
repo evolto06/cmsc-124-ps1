@@ -1,19 +1,15 @@
 /*
- * driver.c -- the case-file front end. Written for you, complete.
+ * driver.c: Complete case-file front end.
  *
- * It reads a case file, checks it, then runs it against the library you write.
- * The three stages are kept separate. They are the same three stages Unit 3
- * describes:
+ * The driver reads, validates, and executes a case file. It uses the three
+ * stages from Unit 3:
  *
- *   scan     turn one line into tokens
- *   parse    check every command's verb, argument count, and argument kinds,
- *            then check that every name is defined before it is used
- *   execute  run one command at a time, stopping at the first fault
+ *   scan     Convert one line into tokens.
+ *   parse    Check each command and each referenced name.
+ *   execute  Run commands until one reports an error.
  *
- * A file that fails either of the first two stages exits 65 without running a
- * single command. A file that fails during the third exits 70, having run
- * everything before the command that faulted. Keeping the stages separate is
- * what makes that difference possible.
+ * A scan or parse failure exits with code 65 before execution. An execution
+ * failure exits with code 70 after the preceding commands run.
  *
  * Do not change this file.
  */
@@ -28,15 +24,15 @@
 
 #define MAX_ARGS 10
 
-/* ----------------------------------------------------------------- tokens */
+/* Token data. */
 
 typedef struct {
-    char  *text;   /* NUL-terminated for convenience, but len is authoritative */
+    char  *text;   /* Storage ends with NUL. The len field gives the data size. */
     size_t len;
     bool   quoted;
 } token;
 
-/* ---------------------------------------------------------------- verbs */
+/* Command verbs. */
 
 typedef enum {
     V_INT_ADD, V_INT_SUB, V_INT_MUL,
@@ -53,20 +49,20 @@ typedef enum {
 } verb_id;
 
 /*
- * Argument kinds, one letter each:
- *   d  a name this command defines
- *   n  a name this command uses, which must already be defined
- *   i  an integer that may be negative
- *   u  an integer that may not be negative
- *   v  a value literal
- *   f  a plain word used as a field name or an enumeration name
- *   k  a quoted string used as a key
- *   s  a quoted string
- *   *  the kind before it may repeat
+ * Each argument kind uses one letter:
+ *   d  Define a name.
+ *   n  Use a previously defined name.
+ *   i  Read a signed integer.
+ *   u  Read a nonnegative integer.
+ *   v  Read a value literal.
+ *   f  Read a field name or enumeration name.
+ *   k  Read a quoted key.
+ *   s  Read a quoted string.
+ *   *  Repeat the preceding kind.
  */
 typedef struct {
     const char *word1;
-    const char *word2; /* NULL for one-word verbs */
+    const char *word2; /* NULL identifies a one-word verb. */
     verb_id     id;
     const char *kinds;
     int         min_args;
@@ -126,7 +122,7 @@ static const verb_spec VERBS[] = {
 
 static const size_t VERB_COUNT = sizeof VERBS / sizeof VERBS[0];
 
-/* -------------------------------------------------------------- commands */
+/* Parsed commands. */
 
 typedef struct {
     int     line;
@@ -135,7 +131,7 @@ typedef struct {
     int     argc;
 } command;
 
-/* ------------------------------------------------------------ the program */
+/* Program state. */
 
 typedef enum {
     REG_STR, REG_ARRAY, REG_MAP, REG_RECORD, REG_TUPLE, REG_LIST, REG_REF
@@ -222,7 +218,7 @@ static void binding_define(program *prog, const char *name, dt_value v)
     prog->binding_count++;
 }
 
-/* --------------------------------------------------------------- scanning */
+/* Scanner. */
 
 static bool is_ident_start(char c)
 {
@@ -276,13 +272,11 @@ static int hex_digit(char c)
 static void free_tokens(token *tokens, int count);
 
 /*
- * Splits one line into tokens. Returns how many it found, or -1 with *why set
- * when a quoted string is malformed. A '#' at the start of a token begins a
- * comment.
+ * Split one line into tokens. Return the token count. Return -1 and set *why
+ * when a quoted string has invalid syntax. A token that starts with '#' is a comment.
  *
- * On failure it frees the tokens it already made, so the caller never holds
- * half a line. Getting this wrong leaks memory only on bad input, which a
- * correctness test cannot see and a sanitizer can.
+ * Release created tokens after a failure. This prevents a malformed line from
+ * leaking memory. A sanitizer detects this leak.
  */
 static int scan_line(const char *line, token *out, int max_tokens, const char **why)
 {
@@ -383,9 +377,9 @@ static int scan_line(const char *line, token *out, int max_tokens, const char **
     }
 }
 
-/* ---------------------------------------------------------------- parsing */
+/* Parser. */
 
-/* The names defined so far, used while checking that a name exists. */
+/* Store names that the parser has defined. */
 typedef struct {
     char **names;
     size_t count;
@@ -443,7 +437,7 @@ static const verb_spec *find_verb(const token *tokens, int count, int *words)
     return NULL;
 }
 
-/* Which kind belongs at argument position `index`, allowing a trailing '*'. */
+/* Return the argument kind at `index`. Permit a trailing '*'. */
 static char kind_at(const char *kinds, int index)
 {
     int i = 0;
@@ -461,7 +455,7 @@ static char kind_at(const char *kinds, int index)
     return (index >= i && i > 0 && strchr(kinds, '*') != NULL) ? last : '\0';
 }
 
-/* Form only. Whether an enumeration name or a key exists is decided at run time. */
+/* Validate the form. Execution validates enumeration names and keys. */
 static bool value_literal_ok(const token *t, const name_set *defined, const char **why)
 {
     if (t->quoted) {
@@ -689,7 +683,7 @@ static bool parse_file(program *prog, const char *path)
         for (int i = 0; i < argc; i++) {
             cmd->args[i] = tokens[words + i];
         }
-        free_tokens(tokens, words); /* the verb words themselves */
+        free_tokens(tokens, words); /* Release the verb words. */
 
         if (c == EOF) {
             break;
@@ -702,7 +696,7 @@ static bool parse_file(program *prog, const char *path)
     return ok;
 }
 
-/* -------------------------------------------------------------- execution */
+/* Executor. */
 
 static dt_status resolve_value(program *prog, const token *t, dt_value *out)
 {
@@ -1102,11 +1096,11 @@ static dt_status execute(program *prog, const command *cmd)
     return DT_OK;
 }
 
-/* ---------------------------------------------------------------- cleanup */
+/* Cleanup. */
 
 static void program_free(program *prog)
 {
-    /* Reverse creation order, so no cell is freed while something still uses it. */
+    /* Use reverse creation order to preserve referenced cells during cleanup. */
     for (size_t i = prog->registry_count; i-- > 0;) {
         reg_entry *entry = &prog->registry[i];
         switch (entry->kind) {
@@ -1135,8 +1129,7 @@ static void program_free(program *prog)
 }
 
 /*
- * A reference that still holds its cell when the program ends is a leak. C does
- * not report that. This is the check that does.
+ * Report a reference that still owns its cell when the program ends.
  */
 static bool report_leaks(program *prog)
 {

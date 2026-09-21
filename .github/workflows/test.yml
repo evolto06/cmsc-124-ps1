@@ -21,7 +21,6 @@ jobs:
 
       - run: chmod +x build.sh run check.sh
 
-      # check.sh is the complete public automated check. It builds, runs the
-      # published corpus, and repeats it with AddressSanitizer and
-      # UndefinedBehaviorSanitizer. Both sanitizers link on these runners.
+      # check.sh is the complete public automated check. It builds the project
+      # and runs the published corpus. It repeats the corpus with both sanitizers.
       - run: ./check.sh

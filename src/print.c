@@ -1,8 +1,8 @@
 /*
- * print.c -- how each value prints. Written for you, complete.
+ * print.c: Complete value printer.
  *
- * The grading corpus compares stdout byte for byte, so every value has one
- * spelling and it is defined here. Do not change this file.
+ * The grading corpus compares stdout byte for byte. This file defines each
+ * value format. Do not change this file.
  */
 
 #include "driver.h"

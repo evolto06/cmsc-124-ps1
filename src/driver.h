@@ -1,5 +1,5 @@
 /*
- * driver.h -- declarations shared by the three driver files.
+ * driver.h: Declarations shared by the three driver files.
  * Not part of the assignment. None of your files include this.
  */
 

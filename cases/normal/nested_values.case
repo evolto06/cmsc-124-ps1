@@ -1,4 +1,4 @@
-# Every container holds dt_value, so they nest without any extra work.
+# Each container stores dt_value objects and can contain another container.
 list nil e
 list cons inner 9 e
 rec new point x y

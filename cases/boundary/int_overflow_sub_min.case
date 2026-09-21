@@ -1,2 +1,2 @@
-# -9223372036854775808 - 1. Also the case where negating b would not work.
+# This result would be -9223372036854775809. It is below LLONG_MIN.
 int sub -9223372036854775807 2

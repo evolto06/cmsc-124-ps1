@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# run -- the entry point the harness calls. One case file per invocation.
+# run: Execute one case file for the test harness.
 #
-# DT_BUILD_DIR lets check.sh point this at the sanitized build without
-# rebuilding the normal one. It defaults to ./build, which is what you want.
+# DT_BUILD_DIR selects the sanitizer build when check.sh sets it.
+# The default directory is ./build.
 binary="${DT_BUILD_DIR:-./build}/cmsc-124-ps1"
 if [[ -f "$binary.exe" ]]; then
   binary="$binary.exe"

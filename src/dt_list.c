@@ -1,25 +1,22 @@
 /*
- * dt_list.c -- lists (Unit 5, Section H).
+ * dt_list.c: Lists for Unit 5, Section H.
  *
- * A cell holds a value and a pointer to the rest of the list. CAR reads the
- * value, CDR reads the rest, and CONS puts a new cell in front. That is the
- * whole data type.
+ * A cell holds a value and a pointer to the list tail.
+ * CAR reads the value. CDR reads the tail. CONS creates a new first cell.
  *
- * The part to study is what CONS does not do. It does not copy the tail. It
- * points at it. After these commands:
+ * CONS creates one cell and shares the supplied tail. After these commands:
  *
  *     list nil e
  *     list cons b 2 e
  *     list cons a 1 b
  *
- * the list a is (1 2) and the list b is (2). The cell holding 2 is one cell that
- * both lists reach. So cons takes constant time and costs one cell however long
- * the tail is, which is why a linked list is worth having.
+ * List a is (1 2). List b is (2). Both lists reference the cell that holds 2.
+ * CONS takes constant time and allocates one cell.
  *
- * It is also why dt_list_free frees one cell and never follows the tail.
- * Following it would free cells that b still uses.
+ * dt_list_free releases one cell. Following the tail would release cells that
+ * list b still uses.
  *
- * The empty list is a null pointer, so it costs nothing to represent.
+ * A null pointer represents the empty list.
  */
 
 #include "dt.h"
@@ -32,12 +29,11 @@ struct dt_list {
 };
 
 /*
- * dt_list_nil: the empty list. It is a null pointer, so it costs no memory and
- * needs no allocation.
+ * dt_list_nil returns the null pointer that represents the empty list.
  */
 dt_list *dt_list_nil(void)
 {
-    /* TODO: the empty list. Read the note above before you allocate anything.
+    /* TODO: Return the empty list. Do not allocate memory.
        dt_list_nil()             -> the empty list, which prints as ()
        dt_list_len(dt_list_nil()) -> 0
        cases/normal/list_basics.case */
@@ -45,15 +41,17 @@ dt_list *dt_list_nil(void)
 }
 
 /*
- * dt_list_cons: build a new cell holding `head` and pointing at `tail`. The
- * tail is shared, never copied. Returns NULL when an allocation fails.
+ * dt_list_cons builds a new cell that holds head and references tail.
+ * The new cell shares the supplied tail.
+ * The function returns NULL after an allocation failure.
  */
 dt_list *dt_list_cons(dt_value head, dt_list *tail)
 {
-    /* TODO: one new cell pointing at the tail you were given. Do not copy the
-       tail.
-       after `list nil e`, `list cons c 3 e`, `list cons b 2 c`, `list cons a 1 b`:
-         a is (1 2 3) and b is (2 3), sharing the same cells for 2 and 3
+    /* TODO: Allocate one cell that references the specified tail.
+       Preserve the tail.
+       Create e, c, b, and a in that order.
+       List a contains (1 2 3).
+       List b contains (2 3) and references the same cells for 2 and 3.
        an allocation failure -> NULL
        cases/normal/list_basics.case, cases/cleanup/shared_list_tail.case */
     (void)head;
@@ -62,27 +60,24 @@ dt_list *dt_list_cons(dt_value head, dt_list *tail)
 }
 
 /*
- * dt_list_free: release this one cell, never its tail. Other lists may still
- * reach the tail, so following it would free cells they still use. Accepts
- * NULL and does nothing then.
+ * dt_list_free releases one cell and preserves its tail.
+ * Another list can still reference the tail. The function accepts NULL.
  */
 void dt_list_free(dt_list *l)
 {
-    /* TODO: free this one cell. Not its tail. Accept NULL without crashing.
+    /* TODO: Release this cell. Preserve its tail. Accept NULL.
        freeing a's first cell  -> b still reaches the cells holding 2 and 3
-       following the tail here is a double free the sanitizer reports in CI
+       releasing the tail here causes the sanitizer to report a double release
        cases/cleanup/shared_list_tail.case */
     (void)l;
 }
 
 /*
- * dt_list_len: how many cells are in the list. This walks cell to cell, so it
- * costs one step per cell. That is the price of the representation.
+ * dt_list_len counts the cells. It visits each cell once.
  */
 size_t dt_list_len(const dt_list *l)
 {
-    /* TODO: walk to the end. This costs one step per cell, which is the price
-       of the representation.
+    /* TODO: Visit each cell and count it.
        for a = (1 2 3):  dt_list_len(a) -> 3
        for the empty list: dt_list_len(NULL) -> 0
        cases/normal/list_basics.case */
@@ -91,14 +86,14 @@ size_t dt_list_len(const dt_list *l)
 }
 
 /*
- * dt_list_car: write the first cell's value to *out. Returns DT_ERR_EMPTY on
- * the empty list, and leaves *out alone then. The empty list has no first
- * element, and nil is a different answer from no answer.
+ * dt_list_car writes the first cell value to *out.
+ * It returns DT_ERR_EMPTY and does not change *out for an empty list.
+ * A nil value differs from an absent value.
  */
 dt_status dt_list_car(const dt_list *l, dt_value *out)
 {
-    /* TODO: DT_ERR_EMPTY on the empty list. The empty list has no first
-       element, and nil is a different answer from no answer.
+    /* TODO: Return DT_ERR_EMPTY for an empty list.
+       Preserve *out after this error. A nil value is a valid cell value.
        for a = (1 2 3):     dt_list_car(a, &out)    -> DT_OK, *out is 1
        for the empty list:  dt_list_car(NULL, &out) -> DT_ERR_EMPTY, *out untouched
        cases/normal/list_basics.case, cases/boundary/list_car_empty.case */
@@ -108,16 +103,14 @@ dt_status dt_list_car(const dt_list *l, dt_value *out)
 }
 
 /*
- * dt_list_cdr: write the tail of the list to *out. Returns DT_ERR_EMPTY on the
- * empty list. The cdr of a one-element list is the empty list, which is a real
- * answer, not an error.
+ * dt_list_cdr writes the tail to *out. It returns DT_ERR_EMPTY for an empty
+ * list. A one-element list has an empty tail and returns DT_OK.
  */
 dt_status dt_list_cdr(const dt_list *l, dt_list **out)
 {
-    /* TODO: DT_ERR_EMPTY on the empty list, and the shared tail otherwise. The
-       cdr of a one-element list is the empty list, which is not an error.
-       for a = (1 2 3):     dt_list_cdr(a, &out)    -> DT_OK, *out is b, the same
-                                                       cells, never a copy
+    /* TODO: Return DT_ERR_EMPTY for an empty list. Return the existing tail for
+       a nonempty list. A one-element list has an empty tail.
+       for a = (1 2 3):     dt_list_cdr(a, &out)    -> DT_OK, *out references tail b
        for the empty list:  dt_list_cdr(NULL, &out) -> DT_ERR_EMPTY, *out untouched
        cases/normal/list_basics.case, cases/boundary/list_cdr_empty.case */
     (void)l;

@@ -1,4 +1,3 @@
-# LLONG_MIN has no positive counterpart, so negating it overflows. A check
-# written as a division traps here too, since LLONG_MIN / -1 is the same
-# problem wearing a different operator.
+# LLONG_MIN has no positive counterpart, so its negation overflows.
+# LLONG_MIN / -1 also has undefined behavior.
 int mul -9223372036854775808 -1

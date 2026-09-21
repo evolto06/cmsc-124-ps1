@@ -1,5 +1,4 @@
-# Nothing here checks a value. It exists so that the sanitized run has a broad
-# allocation pattern to walk over on the way out.
+# This case creates many allocations for the sanitizer check.
 str new s1 "one"
 str new s2 "two"
 str new s3 "three"

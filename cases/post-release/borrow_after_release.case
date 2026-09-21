@@ -1,5 +1,4 @@
-# The dangling read. The address is still in the handle and the memory is not
-# ours any more.
+# The released flag prevents cell access after release.
 ref new p 42
 ref release p
 ref borrow p

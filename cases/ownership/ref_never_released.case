@@ -1,4 +1,3 @@
-# The pointee is still allocated and nothing can reach it. A lost heap
-# variable, reported at exit.
+# The handle still reaches its allocated cell. The final check reports it.
 ref new p 42
 ref borrow p

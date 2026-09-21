@@ -1,4 +1,4 @@
-# Ordinary arithmetic, nowhere near the edges.
+# These operations stay within the integer limits.
 int add 2 3
 int sub 10 4
 int mul 6 7

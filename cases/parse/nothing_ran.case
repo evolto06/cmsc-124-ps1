@@ -1,5 +1,5 @@
-# The first two lines are perfectly good. The third is not, and because the
-# whole file is checked before anything runs, stdout stays empty.
+# The first two commands are valid. The third command is invalid.
+# The driver validates the complete file before execution, so stdout stays empty.
 int add 1 1
 int add 2 2
 int add

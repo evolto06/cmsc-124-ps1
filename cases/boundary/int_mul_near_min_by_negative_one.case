@@ -1,3 +1,2 @@
-# One more than LLONG_MIN does have a counterpart, so this is the neighbouring
-# case that must still succeed.
+# One more than LLONG_MIN has a positive counterpart. This operation succeeds.
 int mul -9223372036854775807 -1

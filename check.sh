@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# check.sh -- the complete public automated check, run by you, CI, and me.
+# check.sh: Run the complete public automated check.
 #
-# There is no second script with extra tests in it. What this runs is what
-# cases/ contains, and cases/ is in the repository you were handed.
+# This script runs each case in cases/. The repository contains all grading
+# cases.
 set -u
 
 HARNESS_TAG="v1.1"
@@ -22,16 +22,27 @@ fi
 
 if command -v python3 >/dev/null 2>&1; then
   PYTHON=python3
-else
+elif command -v python >/dev/null 2>&1; then
   PYTHON=python
+else
+  echo "check.sh: Python 3.9 or newer is required." >&2
+  exit 1
+fi
+
+if ! "$PYTHON" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)'; then
+  echo "check.sh: Python 3.9 or newer is required." >&2
+  exit 1
 fi
 
 if [[ ! -f run_tests.py ]]; then
   banner "fetching harness ${HARNESS_TAG}"
-  if ! curl -sSL "$HARNESS_URL" -o run_tests.py; then
+  harness_tmp="$(mktemp ./run_tests.py.XXXXXX)"
+  if ! curl -fsSL "$HARNESS_URL" -o "$harness_tmp"; then
+    rm -f "$harness_tmp"
     echo "check.sh: could not fetch the harness. Check your network." >&2
     exit 1
   fi
+  mv "$harness_tmp" run_tests.py
 fi
 
 banner "correctness"
@@ -40,15 +51,11 @@ if ! "$PYTHON" run_tests.py cases; then
 fi
 
 banner "sanitizers"
-# AddressSanitizer and UndefinedBehaviorSanitizer catch the memory faults the
-# correctness run cannot see. Examples include a read past an allocation and a
-# use of freed memory that happens to retain the old bytes. Both can pass a
-# comparison of standard output.
+# AddressSanitizer and UndefinedBehaviorSanitizer detect memory faults.
+# A standard output comparison cannot detect these faults.
 #
-# MinGW GCC does not ship libasan or libubsan, so on MSYS2 this leg cannot run
-# at all. That is a property of the toolchain, not of your code. It runs on
-# Linux, on macOS, and in the GitHub Actions workflow, which is where the
-# graded verdict comes from.
+# MinGW GCC does not include libasan or libubsan. This test cannot run on
+# MSYS2. The GitHub Actions workflow runs this test on Linux and macOS.
 probe_cc="${CC:-cc}"
 if ! command -v "$probe_cc" >/dev/null 2>&1; then
   probe_cc="gcc"
@@ -60,6 +67,7 @@ printf 'int main(void){return 0;}\n' > "$probe_dir/probe.c"
 if command -v "$probe_cc" >/dev/null 2>&1 &&
    "$probe_cc" -fsanitize=address,undefined -o "$probe_dir/probe" "$probe_dir/probe.c" >/dev/null 2>&1; then
   rm -rf "$probe_dir"
+  cmake -E remove_directory build-san
 
   if ! cmake -S . -B build-san -G Ninja -DCMAKE_BUILD_TYPE=Debug -DDT_SANITIZE=ON >/dev/null; then
     echo "check.sh: sanitized configure failed." >&2
@@ -68,13 +76,10 @@ if command -v "$probe_cc" >/dev/null 2>&1 &&
     echo "check.sh: sanitized build failed." >&2
     failures=1
   else
-    # A sanitizer abort is a non-zero exit the harness reports as a failed
-    # test, so a leak or an overflow shows up by name rather than as a note
-    # nobody reads.
+    # The harness reports a sanitizer abort as a failed test.
     #
-    # Leak detection is left at its default instead of being forced on. It is
-    # already on under Linux, and Apple's AddressSanitizer has no leak checker
-    # at all, so asking for one there fails the run before a test executes.
+    # Linux AddressSanitizer enables leak detection by default. Apple
+    # AddressSanitizer does not include a leak checker.
     export ASAN_OPTIONS="abort_on_error=0"
     export UBSAN_OPTIONS="print_stacktrace=1:halt_on_error=1"
     if ! DT_BUILD_DIR=./build-san "$PYTHON" run_tests.py cases; then

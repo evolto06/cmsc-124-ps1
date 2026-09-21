@@ -1,4 +1,3 @@
-# Forward reference. The name exists later in the file, which is not the same
-# as existing here.
+# This command uses a name before its definition.
 print @later
 str new later "too late"

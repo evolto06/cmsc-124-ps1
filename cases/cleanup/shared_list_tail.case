@@ -1,5 +1,4 @@
-# b and a share every cell of b. Freeing must free each cell once, which is why
-# dt_list_free frees one cell and never follows the tail.
+# Lists a and b share each cell in b. Each call to dt_list_free frees one cell.
 list nil e
 list cons c 3 e
 list cons b 2 c

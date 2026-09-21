@@ -1,4 +1,4 @@
-# Appending past the initial capacity has to grow the buffer, repeatedly.
+# Each append can require a larger buffer.
 str new s "0123456789"
 str append s "0123456789"
 str append s "0123456789"

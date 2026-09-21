@@ -1,23 +1,20 @@
 /*
- * dt.h -- CMSC 124 Problem Set 1: Data Types
+ * dt.h: CMSC 124 Problem Set 1 data types.
  *
- * This header is fixed. Do not edit it. The driver in src/ is written against
- * these exact declarations and the grading corpus drives that driver, so a
- * change here breaks the build.
+ * Do not edit this header. The driver uses these declarations.
+ * A declaration change breaks the build.
  *
- * Your work is the ten files in src/ named dt_*.c. Each one implements one
- * category from Unit 5 of the syllabus.
+ * Implement the ten dt_*.c files in src/. Each file implements one category
+ * from Unit 5.
  *
- * Two rules run through the whole interface.
+ * The complete interface uses two rules.
  *
- * 1. Every operation that can fail returns dt_status. None of them report
- *    failure with a special return value. There is no integer dt_int_add could
- *    return that would not also be a correct answer.
+ * 1. Each operation that can fail returns dt_status. A special data value
+ *    cannot report failure because that value can also be a valid result.
  *
- * 2. Each module owns its representation storage, such as an array's element
- *    block. Containers borrow any objects named by their dt_value elements.
- *    The driver owns those runtime objects and frees them at exit. This keeps
- *    object ownership out of nine modules so dt_ref can isolate the topic.
+ * 2. Each module owns its representation storage. Containers borrow the
+ *    objects in their dt_value elements. The driver releases these objects.
+ *    Only dt_ref manages object ownership.
  */
 
 #ifndef DT_H
@@ -30,11 +27,11 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-/* ------------------------------------------------------------------ status */
+/* Status codes. */
 
 /*
- * One code per way an operation can fail. The driver turns any code other than
- * DT_OK into a message on stderr and exit code 70. Your modules never print.
+ * Each failure has one code. The driver writes its message to stderr and exits
+ * with code 70. The data-type modules do not print.
  */
 typedef enum {
     DT_OK = 0,
@@ -42,17 +39,17 @@ typedef enum {
     DT_ERR_RANGE,     /* an index or an ordinal fell outside its bounds */
     DT_ERR_KEY,       /* an associative array has no such key */
     DT_ERR_FIELD,     /* a record has no field with that name */
-    DT_ERR_TAG,       /* a value was read as the wrong alternative */
-    DT_ERR_EMPTY,     /* car or cdr was taken of the empty list */
+    DT_ERR_TAG,       /* a reader received the wrong value category */
+    DT_ERR_EMPTY,     /* car or cdr received the empty list */
     DT_ERR_CAPACITY,  /* a requested allocation or representation is unavailable */
-    DT_ERR_RELEASED,  /* a reference was read or released after release */
+    DT_ERR_RELEASED,  /* an operation received a released reference */
     DT_ERR_LEAK       /* a reference was still holding memory when the program ended */
 } dt_status;
 
 /* The text the driver prints for a status. */
 const char *dt_status_message(dt_status status);
 
-/* ------------------------------------------------------- the tagged union */
+/* Tagged union. */
 
 typedef enum {
     DT_NIL = 0,
@@ -76,9 +73,8 @@ typedef struct dt_list   dt_list;
 typedef struct dt_ref    dt_ref;
 
 /*
- * The value type has ten alternatives and a tag saying which one is in use.
- * Every container below stores dt_value, so this struct is what the other nine
- * modules are built out of.
+ * The value type has ten alternatives. Its tag identifies the active
+ * alternative. Containers store dt_value objects.
  */
 typedef struct {
     dt_tag tag;
@@ -95,7 +91,7 @@ typedef struct {
     } as;
 } dt_value;
 
-/* Constructors. These cannot fail, so they return the value itself. */
+/* These constructors cannot fail and return a value directly. */
 dt_value dt_value_nil(void);
 dt_value dt_value_int(long long n);
 dt_value dt_value_enum(int ordinal);
@@ -107,50 +103,48 @@ dt_value dt_value_tuple(dt_tuple *t);
 dt_value dt_value_list(dt_list *l);
 dt_value dt_value_ref(dt_ref *p);
 
-/* Name of a tag, for messages and for the `tag` command: "int", "str", ... */
+/* Return the tag text for messages and the tag command. */
 const char *dt_tag_name(dt_tag tag);
 
 /*
- * Checked readers. Each one confirms the tag before it touches the payload and
- * returns DT_ERR_TAG when the value holds a different alternative. A free union
- * cannot enforce this. A discriminated union can.
+ * Each reader checks the tag before it reads the payload. It returns
+ * DT_ERR_TAG when another alternative is active.
  */
 dt_status dt_value_as_int(dt_value v, long long *out);
 dt_status dt_value_as_enum(dt_value v, int *out);
 dt_status dt_value_as_str(dt_value v, dt_str **out);
 
-/* ------------------------------------------------------- checked integers */
+/* Checked integers. */
 
 /*
- * What happens on overflow is a language design decision. C's signed overflow
- * is undefined behavior, so these functions detect it before it happens rather
- * than computing a wrong answer and checking afterward.
+ * C gives signed overflow undefined behavior. These functions detect overflow
+ * before the arithmetic operation.
  *
- * When the result is DT_ERR_OVERFLOW, *out is not written.
+ * The functions do not write *out when they return DT_ERR_OVERFLOW.
  */
 dt_status dt_int_add(long long a, long long b, long long *out);
 dt_status dt_int_sub(long long a, long long b, long long *out);
 dt_status dt_int_mul(long long a, long long b, long long *out);
 
-/* --------------------------------------------------------------- strings */
+/* Strings. */
 
 /*
- * A string that stores its own length. The bytes may include a zero, and
- * dt_str_len takes the same time no matter how long the string is.
+ * A string stores its length with its bytes. The data can include a zero byte.
+ * dt_str_len reads the stored length.
  */
 dt_str   *dt_str_new(const char *bytes, size_t length);
 void      dt_str_free(dt_str *s);
 size_t    dt_str_len(const dt_str *s);
-const char *dt_str_bytes(const dt_str *s); /* use len, even if storage has a terminator */
+const char *dt_str_bytes(const dt_str *s); /* Use dt_str_len for the data size. */
 dt_status dt_str_append(dt_str *s, const char *bytes, size_t length);
 dt_status dt_str_substr(const dt_str *s, size_t start, size_t length, dt_str **out);
 bool      dt_str_eq(const dt_str *a, const dt_str *b);
 
-/* ---------------------------------------------------------- enumerations */
+/* Enumerations. */
 
 /*
- * A fixed set of named values. Ordinals outside the set are rejected instead of
- * being treated as ordinary integers.
+ * The enumeration contains a fixed set of named values. Reject ordinals that
+ * are outside this set.
  */
 typedef enum {
     DT_COLOR_RED = 0,
@@ -163,12 +157,11 @@ bool      dt_enum_is_valid(int ordinal);
 dt_status dt_enum_name(int ordinal, const char **out);
 dt_status dt_enum_from_name(const char *name, int *out);
 
-/* --------------------------------------------------------------- arrays */
+/* Arrays. */
 
 /*
- * An array descriptor stores the elements, length, and lower bound. Every
- * representable index in the array must fit in long long. Access computes a
- * size_t offset without overflowing signed arithmetic.
+ * An array descriptor stores its elements, length, and lower bound. Each index
+ * must fit in long long. Access computes the offset without signed overflow.
  */
 dt_array *dt_array_new(size_t length, long long lower_bound);
 void      dt_array_free(dt_array *a);
@@ -177,13 +170,11 @@ long long dt_array_lower_bound(const dt_array *a);
 dt_status dt_array_get(const dt_array *a, long long index, dt_value *out);
 dt_status dt_array_set(dt_array *a, long long index, dt_value v);
 
-/* ---------------------------------------------------- associative arrays */
+/* Associative arrays. */
 
 /*
- * Keys select values, and unlike an array this structure stores its keys.
- * Traversal follows insertion order so that printing a map gives the same
- * output every time. A removed key leaves that order, and adding it again puts
- * it at the end.
+ * Keys select values. The map stores each key. Traversal uses insertion order
+ * to give stable output. A removed and reinserted key moves to the end.
  */
 dt_map   *dt_map_new(void);
 void      dt_map_free(dt_map *m);
@@ -191,18 +182,16 @@ size_t    dt_map_len(const dt_map *m);
 dt_status dt_map_put(dt_map *m, const char *key, dt_value v);
 dt_status dt_map_get(const dt_map *m, const char *key, dt_value *out);
 dt_status dt_map_remove(dt_map *m, const char *key);
-/* the key at this position in insertion order, or DT_ERR_RANGE past the end */
+/* Return the key at this insertion position or DT_ERR_RANGE. */
 dt_status dt_map_key_at(const dt_map *m, size_t index, const char **out);
 
-/* --------------------------------------------------------------- records */
+/* Records. */
 
 #define DT_RECORD_MAX_FIELDS 8
 
 /*
- * Many statically compiled languages resolve a declared record field to an
- * offset while compiling. Here the lookup happens at run time, which leaves
- * the table of names visible. An undeclared field gives DT_ERR_FIELD, and the
- * record keeps the fields it was built with.
+ * This record searches its field-name table at run time. An undeclared field
+ * returns DT_ERR_FIELD. A record cannot add fields after construction.
  */
 dt_record *dt_record_new(const char **field_names, size_t field_count);
 void       dt_record_free(dt_record *r);
@@ -211,49 +200,44 @@ dt_status  dt_record_field_name(const dt_record *r, size_t index, const char **o
 dt_status  dt_record_get(const dt_record *r, const char *field, dt_value *out);
 dt_status  dt_record_set(dt_record *r, const char *field, dt_value v);
 
-/* ---------------------------------------------------------------- tuples */
+/* Tuples. */
 
 #define DT_TUPLE_MAX_ARITY 8
 
 /*
- * A tuple selects its parts by position. It is built once from those parts and
- * read by index afterward. This interface exposes that distinction from its
- * record type.
+ * A tuple selects its parts by position. Construction sets all parts. Later
+ * operations can only read them by index.
  */
 dt_tuple *dt_tuple_new(const dt_value *values, size_t count);
 void      dt_tuple_free(dt_tuple *t);
 size_t    dt_tuple_arity(const dt_tuple *t);
 dt_status dt_tuple_at(const dt_tuple *t, size_t index, dt_value *out);
 
-/* ----------------------------------------------------------------- lists */
+/* Lists. */
 
 /*
- * Cons cells. dt_list_nil() is the empty list and is a null pointer, so an
- * empty list needs no memory. cdr returns the tail itself, which both lists go
- * on sharing. That is what makes cons cheap.
+ * A list contains cons cells. dt_list_nil returns a null pointer. An empty list
+ * uses no memory. dt_list_cdr returns the shared tail.
  */
 dt_list  *dt_list_nil(void);
 dt_list  *dt_list_cons(dt_value head, dt_list *tail);
-void      dt_list_free(dt_list *l); /* frees this one cell, never its tail */
+void      dt_list_free(dt_list *l); /* Free one cell and preserve its tail. */
 size_t    dt_list_len(const dt_list *l);
 dt_status dt_list_car(const dt_list *l, dt_value *out);
 dt_status dt_list_cdr(const dt_list *l, dt_list **out);
 
-/* ------------------------------------------------------ owned references */
+/* Owned references. */
 
 /*
- * The one module where ownership is the whole point. dt_ref_new allocates a
- * cell holding a copy of the value. The reference owns that cell and nothing
- * further. After `ref new r @s` the reference and the name s
- * share one string, so releasing r frees the cell and leaves the string alone.
+ * dt_ref_new allocates a cell that contains a value copy. The reference owns
+ * this cell. The environment owns objects referenced by the copied value.
  *
- * Reading through a released reference, releasing twice, and never releasing at
- * all are three mistakes C does not catch. Here you catch them yourself.
+ * Detect access after release, repeated release, and an unreleased cell.
  */
 dt_ref   *dt_ref_new(dt_value v);
 dt_status dt_ref_borrow(const dt_ref *p, dt_value *out);
 dt_status dt_ref_release(dt_ref *p);
 bool      dt_ref_is_released(const dt_ref *p);
-void      dt_ref_destroy(dt_ref *p); /* frees the handle itself, driver only */
+void      dt_ref_destroy(dt_ref *p); /* Free the handle. The driver calls this. */
 
 #endif /* DT_H */

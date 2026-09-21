@@ -1,15 +1,13 @@
 /*
- * dt_tuple.c -- tuples (Unit 5, Section G).
+ * dt_tuple.c: Tuples for Unit 5, Section G.
  *
- * A tuple is a record with numbered parts. Numbering costs you meaning.
- * person.age says what it holds and person[1] does not. So tuples suit small
- * temporary groupings, such as a function returning two values.
+ * A tuple is a record with numbered parts.
+ * A field selector can show meaning, but a numeric position does not.
+ * Tuples suit small temporary groups, such as two function results.
  *
- * What you get back is that a tuple needs no declaration. You build it from
- * its parts and read it by position.
+ * A tuple needs no declaration. You build it from its parts and read by position.
  *
- * There is no dt_tuple_set. The arity and the contents are fixed when the tuple
- * is built. That is deliberate.
+ * There is no dt_tuple_set. Construction fixes the arity and contents.
  */
 
 #include "dt.h"
@@ -22,16 +20,16 @@ struct dt_tuple {
 };
 
 /*
- * dt_tuple_new: build a tuple holding the first `count` values, in order. A
- * count of 0 is the empty tuple and is legal. Returns NULL when the count is
- * over DT_TUPLE_MAX_ARITY, or when an allocation fails.
+ * dt_tuple_new builds a tuple from the first count values in order.
+ * A zero count creates a valid empty tuple.
+ * It returns NULL for excessive arity or an allocation failure.
  */
 dt_tuple *dt_tuple_new(const dt_value *values, size_t count)
 {
-    /* TODO: return NULL when count is over DT_TUPLE_MAX_ARITY, and copy the
-       values otherwise. A count of 0 is the empty tuple and is legal.
+    /* TODO: Return NULL when count exceeds DT_TUPLE_MAX_ARITY.
+       Otherwise, copy the values. Accept a zero count.
        {1, "two"}  -> a tuple of arity 2 that prints as (1, "two")
-       count 0     -> the empty tuple, which prints as (), never NULL
+       count 0     -> a valid empty tuple that prints as ()
        count 9     -> NULL, since DT_TUPLE_MAX_ARITY is 8
        cases/normal/tuple_basics.case, cases/capacity/tuple_max_arity.case,
        cases/capacity/tuple_over_arity.case */
@@ -41,26 +39,25 @@ dt_tuple *dt_tuple_new(const dt_value *values, size_t count)
 }
 
 /*
- * dt_tuple_free: release the tuple. Accepts NULL and does nothing then. The
- * values inside belong to the environment and are not freed.
+ * dt_tuple_free releases the tuple. It accepts NULL.
+ * The environment owns the values.
  */
 void dt_tuple_free(dt_tuple *t)
 {
-    /* TODO: release the tuple. The values inside belong to the environment, so
-       leave them alone, the same rule dt_array_free follows.
+    /* TODO: Release the tuple. Preserve its values.
+       The environment owns those values. dt_array_free follows the same rule.
        a tuple holding a string  -> the tuple goes, the string stays
        dt_tuple_free(NULL)       -> returns, having done nothing */
     (void)t;
 }
 
 /*
- * dt_tuple_arity: how many parts the tuple has. This reads a field, so it takes
- * the same time no matter how many parts there are.
+ * dt_tuple_arity returns the stored part count in constant time.
  */
 size_t dt_tuple_arity(const dt_tuple *t)
 {
-    /* TODO: read the field the constructor stored. There is no dt_tuple_set, so
-       this number never changes after construction.
+    /* TODO: Return the count that the constructor stored.
+       The count does not change after construction.
        after `tup new pair 1 "two"`:  dt_tuple_arity(pair) -> 2
        after `tup new empty`:         dt_tuple_arity(empty) -> 0
        cases/normal/tuple_basics.case */
@@ -69,9 +66,8 @@ size_t dt_tuple_arity(const dt_tuple *t)
 }
 
 /*
- * dt_tuple_at: write the part at position `index` to *out. Positions start at
- * 0. Returns DT_ERR_RANGE when the index is at or past the arity, and leaves
- * *out alone then.
+ * dt_tuple_at writes the value at zero-based position index to *out.
+ * It returns DT_ERR_RANGE and does not change *out for an invalid index.
  */
 dt_status dt_tuple_at(const dt_tuple *t, size_t index, dt_value *out)
 {

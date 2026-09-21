@@ -1,96 +1,92 @@
 <!--no-pdf-->
 # CMSC 124 Problem Set 1 Starter
 
-Ten data types from Unit 5, built by hand in C17. The manual is the assignment.
-This file is the repository's own notes.
+This C17 project implements the ten data types from Unit 5. The assignment
+manual defines module behavior, while this README describes the repository,
+commands, expected starter results, supported toolchains, and verification
+tools for local use.
 
 ## Layout
 
 ```
-include/dt.h              the fixed public interface. Do not edit.
-src/main.c                given, complete
-src/driver.c              given, complete: the case-file front end
-src/print.c               given, complete: the canonical printed forms
-src/dt_*.c                yours, ten files
-cases/                    the entire grading corpus
-build.sh  run  check.sh   the course run contract
+include/dt.h              fixed public interface. Do not edit.
+src/main.c                complete program entry point
+src/driver.c              complete case-file front end
+src/driver.h              complete driver interface. Do not edit.
+src/print.c               complete output functions
+src/dt_*.c                ten files that you must implement
+cases/                    complete grading corpus
+build.sh  run  check.sh   course run interface
 ```
 
-## What to Run
+## Commands
 
 ```bash
-./build.sh          # one clean build into build/
-./run <case-file>   # execute one case file
-./check.sh          # build, then the whole published corpus, then sanitizers
+./build.sh          # Create one clean build in build/.
+./run <case-file>   # Run one case file.
+./check.sh          # Run the build, corpus, and sanitizer checks.
 ```
 
-`check.sh` is the complete public automated check. There's no hidden test
-script. The rubric separately assesses analysis, collaboration history, and
-memory evidence.
+`check.sh` is the complete public automated check. No hidden test script
+exists. The rubric also assesses analysis, collaboration history, and memory
+evidence.
 
 ## Exit Codes
 
-The course contract, the same one the laboratory interpreter uses.
+The laboratory interpreter uses the same exit-code contract.
 
 | Code | Meaning |
 |---|---|
-| 0 | every command parsed and ran, and no reference was left unreleased |
-| 65 | the case file was rejected before anything ran |
-| 70 | a command ran and faulted |
+| 0 | Every command ran. The program released each reference. |
+| 65 | The driver rejected the case file before execution. |
+| 70 | A command ran and reported an error. |
 
-## Reading a First Run
+## First Run
 
-A fresh clone builds without warnings, passes 33 of 63 checks, and exits 1.
+A fresh clone builds without warnings. It passes 33 of 63 checks and exits 1.
 
-Look at the 33 that pass before you take any encouragement from them. Most are
-cases that expect a refusal, which a stub that refuses everything satisfies by
-accident. `boundary/array_index_above_upper` wants exit 70, and `dt_array_get`
-returning `DT_ERR_RANGE` unconditionally is exit 70. Nothing has been built. So
-don't read 33/63 as halfway. Every one of the ten `normal/` cases fails. Those
-are the ones that need working code.
+Most passing cases expect an error. A stub that rejects every request can pass
+these cases by accident. For example, `boundary/array_index_above_upper`
+expects exit 70. The `dt_array_get` stub always returns `DT_ERR_RANGE`, which
+produces exit 70.
 
-The workflow run in this repository's Actions tab is red for the same reason.
-It stays red until somebody implements the ten modules. That is the correct
-state for a starter. Your fork's run goes green when you finish.
+The 33 passing checks do not show half completion. All ten `normal/` cases
+fail. Implement the modules until those cases pass.
+
+The workflow in the Actions tab also fails before implementation. This state
+is correct for the starter. Your fork passes after you implement all modules.
 
 ## Tested Toolchains
 
-Every row below is a run that happened.
+Each row records an executed test.
 
 | Environment | Versions | Result |
 |---|---|---|
-| MSYS2 UCRT64 (Windows 11) | GCC 16.2.0, CMake 4.4.2, Ninja 1.13.2, Python 3.14.7 | builds warning-free; 63/63 with a complete implementation; sanitizers skipped, see below |
-| Ubuntu 24.04 under WSL 2 | GCC 13.3.0, Python 3.12.3 | the earlier 60-case corpus passed with a complete implementation and both sanitizers |
-| GitHub Actions, `ubuntu-latest` | the workflow in `.github/workflows/test.yml` | the earlier 60-case scaffold completed all four stages and produced the expected starter result |
-| GitHub Actions, `macos-latest` | the same workflow, Apple Clang | the earlier 60-case scaffold completed the same four stages and produced the expected starter result |
+| MSYS2 UCRT64 on Windows 11 | GCC 16.2.0, CMake 4.4.2, Ninja 1.13.2, Python 3.14.7 | The starter passed 33 of 63 checks. The reference passed 63 of 63 checks. Sanitizers were unavailable. |
+| Ubuntu 24.04 under WSL 2 | GCC 13.3.0, CMake 4.4.3, Ninja 1.13.2, Python 3.12.3 | The reference passed 63 of 63 checks twice. The sanitizer run and both private helpers passed. |
+| GitHub Actions on `ubuntu-latest` | `.github/workflows/test.yml` | The current 63-case starter reached `check.sh` and produced the expected failure. |
+| GitHub Actions on `macos-latest` | `.github/workflows/test.yml` with Apple Clang | The current 63-case starter reached `check.sh` and produced the expected failure. |
 
-That Ubuntu machine had no CMake installed, so its run compiled `src/*.c`
-directly with `gcc`. Everywhere else went through CMake. The
-complete figures are from the instructor's own implementation on the two local
-machines, so what the two Actions runners prove is the scaffold: the build, the
-harness fetch, the corpus, and the sanitizers.
+The Ubuntu WSL test used the same `verify.sh` entry point. CMake built the
+MSYS2 test. An instructor reference supplied the complete implementation.
 
-## The Sanitizer Leg
+## Sanitizer Check
 
-`check.sh` probes once for whether your compiler can link
-`-fsanitize=address,undefined`, and runs the corpus a second time under those
-sanitizers when it can.
+`check.sh` tests whether the compiler can link AddressSanitizer and
+UndefinedBehaviorSanitizer. It runs the corpus again when both sanitizers are
+available.
 
-MinGW GCC ships neither `libasan` nor `libubsan`, so on MSYS2 the link fails
-with `cannot find -lasan`, and the script reports an explicit skip. This is a property of
-the toolchain, confirmed on UCRT64 GCC 16.2.0 and on mingw32 GCC 16.1.0, and
-not something your code can change. It does run in the GitHub Actions workflow,
-confirmed on both `ubuntu-latest` and `macos-latest`. That workflow is where the
-graded verdict comes from, so push your work and read the Actions tab if you
-want the sanitized answer on Windows.
+MinGW GCC does not include `libasan` or `libubsan`. The probe fails on MSYS2.
+The script reports a skip. UCRT64 GCC 16.2.0 and mingw32 GCC 16.1.0 both show
+this result. Your code cannot change this toolchain limit.
 
-Apple's AddressSanitizer has no leak checker, so `check.sh` leaves leak
-detection at whatever the platform defaults to. Linux turns it on by itself,
-which is where the leak half of the grade is decided.
+The GitHub Actions workflow runs both sanitizers on Ubuntu and macOS. Read both
+jobs before submission. The Ubuntu job also checks for memory leaks.
 
-The leg earns its place. Writing this starter, AddressSanitizer caught a leak
-in `driver.c` that every correctness check passed straight through: a
-malformed quoted string made `scan_line` abandon the tokens it had already
-allocated for that line. Nothing about the output was wrong. The bug was
-invisible to a comparison of stdout, which is the category of mistake the
-sanitizer exists for.
+Apple AddressSanitizer does not include a leak checker. Linux
+AddressSanitizer enables leak detection by default.
+
+The sanitizer check detects faults that output comparisons cannot detect.
+During development, it found a leak in `driver.c`. A malformed quoted string
+caused `scan_line` to abandon tokens from that line. All output checks passed
+despite the leak.
