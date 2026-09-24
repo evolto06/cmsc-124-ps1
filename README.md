@@ -1,10 +1,28 @@
 <!--no-pdf-->
 # CMSC 124 Problem Set 1 Starter
 
-This C17 project implements the ten data types from Unit 5. The assignment
-manual defines module behavior, while this README describes the repository,
-commands, expected starter results, supported toolchains, and verification
-tools for local use.
+This incomplete C17 project is the starter for the ten data types from Unit 5.
+This README gives the repository map, commands, starter baseline, supported
+toolchains, and local verification details for the work that the manual defines.
+
+## Pair
+
+Replace the two entries below. An assigned trio adds one entry.
+
+- Full Name (`@github-username`)
+- Full Name (`@github-username`)
+
+## Files You May Change
+
+You may change only these files:
+
+- The ten `src/dt_*.c` files
+- `ANALYSIS.md`
+- The Pair section in this README
+
+Email `reflection.txt` separately. Do not add it to the repository.
+
+Keep this list nearby while you work.
 
 ## Layout
 
@@ -16,6 +34,8 @@ src/driver.h              complete driver interface. Do not edit.
 src/print.c               complete output functions
 src/dt_*.c                ten files that you must implement
 cases/                    complete grading corpus
+ANALYSIS.md               joint analysis that you must create
+README.md                 fill the Pair section only
 build.sh  run  check.sh   course run interface
 ```
 
