@@ -379,7 +379,7 @@ static int scan_line(const char *line, token *out, int max_tokens, const char **
 
 /* Parser. */
 
-/* Store names that the parser has defined. */
+/* Store names after the parser validates their defining commands. */
 typedef struct {
     char **names;
     size_t count;
@@ -591,6 +591,7 @@ static bool parse_file(program *prog, const char *path)
         }
 
         bool line_ok = true;
+        const token *definition = NULL;
         for (int i = 0; i < argc && line_ok; i++) {
             const token *arg = &tokens[words + i];
             char kind = kind_at(spec->kinds, i);
@@ -606,7 +607,7 @@ static bool parse_file(program *prog, const char *path)
                     report_parse_error(line_number, "name is already defined", arg->text);
                     line_ok = false;
                 } else {
-                    name_set_add(&defined, arg->text);
+                    definition = arg;
                 }
                 break;
 
@@ -668,6 +669,10 @@ static bool parse_file(program *prog, const char *path)
             free_tokens(tokens, token_count);
             ok = false;
             break;
+        }
+
+        if (definition != NULL) {
+            name_set_add(&defined, definition->text);
         }
 
         if (prog->command_count == prog->command_capacity) {
