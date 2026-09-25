@@ -16,6 +16,8 @@
 
 #include "dt.h"
 
+#include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 struct dt_array {
