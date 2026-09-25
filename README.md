@@ -9,8 +9,8 @@ toolchains, and local verification details for the work that the manual defines.
 
 Replace the two entries below. An assigned trio adds one entry.
 
-- Full Name (`@github-username`)
-- Full Name (`@github-username`)
+- Yuan Miguel C. Birondo (`@github-username`)
+- Eusef Karl O. Blancada (`@evolto06`)
 
 ## Files You May Change
 
